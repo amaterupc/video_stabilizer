@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import argparse
+from tqdm import tqdm  # tqdmをインポートしてプログレスバーを追加
 from moviepy.editor import VideoFileClip
 
 # Function to stabilize the video using optical flow
@@ -25,7 +26,8 @@ def stabilize_video(input_path, temp_output_path, radius, scaling_factor, zoom_f
     # Transform accumulator
     transforms = np.zeros((n_frames-1, 3), np.float32)
     
-    for i in range(n_frames-1):
+    # tqdmを使用して進行状況バーを表示
+    for i in tqdm(range(n_frames-1), desc="Stabilizing video"):
         ret, curr = cap.read()
         if not ret:
             break
@@ -68,7 +70,8 @@ def stabilize_video(input_path, temp_output_path, radius, scaling_factor, zoom_f
     # Reset stream to first frame
     cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
     
-    for i in range(n_frames-1):
+    # tqdmで出力部分の進行状況も表示
+    for i in tqdm(range(n_frames-1), desc="Writing stabilized video"):
         # Read next frame
         ret, frame = cap.read()
         if not ret:
