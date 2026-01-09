@@ -4,7 +4,7 @@ import argparse
 from moviepy.editor import VideoFileClip
 
 # Function to stabilize the video using optical flow
-def stabilize_video(input_path, output_path):
+def stabilize_video(input_path, temp_output_path, radius, scaling_factor):
     # Open the video
     cap = cv2.VideoCapture(input_path)
     
@@ -16,7 +16,7 @@ def stabilize_video(input_path, output_path):
     
     # Define the codec and create VideoWriter object
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+    out = cv2.VideoWriter(temp_output_path, fourcc, fps, (width, height))
     
     # Read the first frame
     ret, prev = cap.read()
@@ -59,10 +59,10 @@ def stabilize_video(input_path, output_path):
     trajectory = np.cumsum(transforms, axis=0)
     
     # Compute smooth trajectory
-    smooth_trajectory = smooth(trajectory)
+    smooth_trajectory = smooth(trajectory, radius)
     
     # Compute difference between smoothed and original trajectory
-    difference = smooth_trajectory - trajectory
+    difference = (smooth_trajectory - trajectory) * scaling_factor
     transforms_smooth = transforms + difference
     
     # Reset stream to first frame
@@ -126,6 +126,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Video Stabilization Script")
     parser.add_argument('input', type=str, help="Input video file path")
     parser.add_argument('output', type=str, help="Output video file path")
+    parser.add_argument('-r', '--radius', type=int, default=5, help="Smoothing radius for trajectory (default: 5)")
+    parser.add_argument('-s', '--scaling_factor', type=float, default=1.0, help="Scaling factor for stabilization (default: 1.0)")
     
     args = parser.parse_args()
     
@@ -133,7 +135,8 @@ if __name__ == "__main__":
     temp_output = "temp_stabilized.mp4"
     
     # Run the stabilization function
-    stabilize_video(args.input, temp_output)
+    stabilize_video(args.input, temp_output, args.radius, args.scaling_factor)
     
     # Merge the original audio with the stabilized video
     merge_audio(args.input, temp_output, args.output)
+
