@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import argparse
+from moviepy.editor import VideoFileClip
 
 # Function to stabilize the video using optical flow
 def stabilize_video(input_path, output_path):
@@ -105,6 +106,20 @@ def smooth(trajectory, radius=5):
         smoothed_trajectory[i] = np.mean(trajectory[i-radius:i+radius], axis=0)
     return smoothed_trajectory
 
+# Function to combine stabilized video with original audio
+def merge_audio(input_video, stabilized_video, output_video):
+    # Load the original video with audio using moviepy
+    original_clip = VideoFileClip(input_video)
+    
+    # Load the stabilized video (without audio)
+    stabilized_clip = VideoFileClip(stabilized_video).without_audio()
+    
+    # Combine the original audio with the stabilized video
+    final_clip = stabilized_clip.set_audio(original_clip.audio)
+    
+    # Write the final output video with audio
+    final_clip.write_videofile(output_video, codec="libx264", audio_codec="aac")
+
 # Main function
 if __name__ == "__main__":
     # Argument parser for command-line input
@@ -114,6 +129,11 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
     
+    # Temporary output file for video stabilization (without audio)
+    temp_output = "temp_stabilized.mp4"
+    
     # Run the stabilization function
-    stabilize_video(args.input, args.output)
-
+    stabilize_video(args.input, temp_output)
+    
+    # Merge the original audio with the stabilized video
+    merge_audio(args.input, temp_output, args.output)
