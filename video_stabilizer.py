@@ -4,7 +4,7 @@ import argparse
 from moviepy.editor import VideoFileClip
 
 # Function to stabilize the video using optical flow
-def stabilize_video(input_path, temp_output_path, radius, scaling_factor):
+def stabilize_video(input_path, temp_output_path, radius, scaling_factor, zoom_factor=1.1):
     # Open the video
     cap = cv2.VideoCapture(input_path)
     
@@ -91,8 +91,18 @@ def stabilize_video(input_path, temp_output_path, radius, scaling_factor):
         # Apply affine wrapping to the given frame
         frame_stabilized = cv2.warpAffine(frame, m, (width, height))
         
-        # Write the frame to the output video
-        out.write(frame_stabilized)
+        # Zoom in to remove black borders
+        frame_stabilized_zoomed = cv2.resize(frame_stabilized, None, fx=zoom_factor, fy=zoom_factor, interpolation=cv2.INTER_LINEAR)
+        
+        # Crop the zoomed frame to the original size
+        center_x, center_y = frame_stabilized_zoomed.shape[1] // 2, frame_stabilized_zoomed.shape[0] // 2
+        cropped_frame = frame_stabilized_zoomed[
+            center_y - height // 2:center_y + height // 2,
+            center_x - width // 2:center_x + width // 2
+        ]
+        
+        # Write the zoomed and cropped frame to the output video
+        out.write(cropped_frame)
     
     # Release the video objects
     cap.release()
