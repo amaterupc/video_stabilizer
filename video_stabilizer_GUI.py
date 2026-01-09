@@ -2,7 +2,8 @@ import cv2
 import numpy as np
 import tkinter as tk
 from tkinter import filedialog, messagebox
-from tkinter import ttk  # Importing ttk for progress bar
+from tkinter import ttk
+from tkinterdnd2 import TkinterDnD, DND_FILES  # TkinterDnD2のインポート
 from moviepy.editor import VideoFileClip
 
 # Function to stabilize the video using optical flow
@@ -20,7 +21,7 @@ def stabilize_video(input_path, temp_output_path, radius, scaling_factor, zoom_f
     prev_gray = cv2.cvtColor(prev, cv2.COLOR_BGR2GRAY)
     transforms = np.zeros((n_frames-1, 3), np.float32)
 
-    progress_bar['maximum'] = n_frames - 1  # Set the maximum value of the progress bar
+    progress_bar['maximum'] = n_frames - 1
 
     for i in range(n_frames-1):
         ret, curr = cap.read()
@@ -42,8 +43,8 @@ def stabilize_video(input_path, temp_output_path, radius, scaling_factor, zoom_f
         transforms[i] = [dx, dy, da]
         prev_gray = curr_gray
 
-        progress_bar['value'] = i  # Update the progress bar
-        progress_bar.update_idletasks()  # Update the GUI
+        progress_bar['value'] = i
+        progress_bar.update_idletasks()
 
     trajectory = np.cumsum(transforms, axis=0)
     smooth_trajectory = smooth(trajectory, radius)
@@ -78,8 +79,8 @@ def stabilize_video(input_path, temp_output_path, radius, scaling_factor, zoom_f
         
         out.write(cropped_frame)
 
-        progress_bar['value'] = i  # Update the progress bar for the writing process
-        progress_bar.update_idletasks()  # Update the GUI
+        progress_bar['value'] = i
+        progress_bar.update_idletasks()
 
     cap.release()
     out.release()
@@ -97,7 +98,7 @@ def merge_audio(input_video, stabilized_video, output_video):
     final_clip = stabilized_clip.set_audio(original_clip.audio)
     final_clip.write_videofile(output_video, codec="libx264", audio_codec="aac")
 
-# GUI setup
+# GUI setup with drag-and-drop support
 def run_gui():
     def select_input_file():
         filename = filedialog.askopenfilename(title="Select Input Video", filetypes=[("Video Files", "*.mp4")])
@@ -108,6 +109,10 @@ def run_gui():
         filename = filedialog.asksaveasfilename(title="Save Output Video", defaultextension=".mp4", filetypes=[("MP4 Files", "*.mp4")])
         output_entry.delete(0, tk.END)
         output_entry.insert(0, filename)
+
+    def on_drop(event):
+        input_entry.delete(0, tk.END)
+        input_entry.insert(0, event.data)
 
     def start_stabilization():
         input_file = input_entry.get()
@@ -128,12 +133,16 @@ def run_gui():
         except Exception as e:
             messagebox.showerror("Error", f"An error occurred: {str(e)}")
 
-    root = tk.Tk()
+    # Create root window with drag-and-drop support
+    root = TkinterDnD.Tk()  # Use TkinterDnD.Tk for drag-and-drop support
     root.title("Video Stabilizer")
 
     tk.Label(root, text="Input Video:").grid(row=0, column=0, padx=10, pady=5)
     input_entry = tk.Entry(root, width=50)
     input_entry.grid(row=0, column=1, padx=10, pady=5)
+    input_entry.drop_target_register(DND_FILES)  # Enable drag-and-drop for input_entry
+    input_entry.dnd_bind('<<Drop>>', on_drop)
+
     tk.Button(root, text="Browse", command=select_input_file).grid(row=0, column=2, padx=10, pady=5)
 
     tk.Label(root, text="Output Video:").grid(row=1, column=0, padx=10, pady=5)
